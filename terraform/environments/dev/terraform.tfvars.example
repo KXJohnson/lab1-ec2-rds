@@ -1,0 +1,17 @@
+# Copy this file only for local testing.
+# Do NOT commit real terraform.tfvars files.
+
+aws_region = "us-east-1"
+
+# Replace with your allowed IP for SSH, if SSH is required.
+# Example format: "203.0.113.10/32"
+allowed_ssh_cidr = "YOUR_PUBLIC_IP/32"
+
+db_name     = "lab1db"
+db_username = "admin"
+
+# Do not put the real DB password here in the public repo.
+# Use HCP Terraform sensitive variables, Vault, or AWS Secrets Manager.
+db_password = "REPLACE_WITH_SECURE_VALUE"
+
+

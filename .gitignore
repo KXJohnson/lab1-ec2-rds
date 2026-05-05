@@ -1,8 +1,7 @@
-.terraform/
+# Terraform local files
+**/.terraform/*
 *.tfstate
 *.tfstate.*
-*.tfvars
-*.tfplan
 crash.log
 crash.*.log
 override.tf
@@ -10,3 +9,23 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 .terraform.lock.hcl
+
+# Terraform variable files containing secrets
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+!**/terraform.tfvars.example
+
+# Sensitive files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+.env.*
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
