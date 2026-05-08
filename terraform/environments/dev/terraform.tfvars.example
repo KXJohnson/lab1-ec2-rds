@@ -1,5 +1,5 @@
-# Copy this file only for local testing.
-# Do NOT commit real terraform.tfvars files.
+# NOTE TO SELF: Copy this file only for local testing.
+# Do NOT commit real terraform.tfvars files OR IT'S A LIFETIME OF BOMQUEISHA!
 
 aws_region = "us-east-1"
 
