@@ -1,1 +1,0 @@
-terraform {\n  required_version = ">= 1.0.0"\n  required_providers {\n    aws = {\n      source  = "hashicorp/aws"\n      version = "~> 3.0"\n    }\n    vault = {\n      source  = "hashicorp/vault"\n      version = "~> 2.0"\n    }\n  }\n}\n
