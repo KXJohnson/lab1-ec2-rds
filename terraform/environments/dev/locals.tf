@@ -1,8 +1,9 @@
 locals {
-  project     = "lab1"
-  environment = "dev"
-  owner       = "kxjohnson"
-  region      = "us-east-1"
+  project         = "lab1"
+  environment     = "dev"
+  owner           = "kxjohnson"
+  region          = "us-east-1"
+  rds_secret_name = "lab/rds/mysql"
 
   name_prefix = "${local.project}-${local.environment}"
 
