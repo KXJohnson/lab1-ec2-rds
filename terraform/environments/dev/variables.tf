@@ -61,6 +61,16 @@ variable "db_password" {
   ephemeral   = true
 }
 
+variable "owner" {
+  description = "Owner tag value for LAB1 resources."
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment tag value for LAB1 resources."
+  type        = string
+}
+
 
 variable "secret_path" {
   type    = string
@@ -69,7 +79,6 @@ variable "secret_path" {
 
 variable "common_tags" {
   type = map(string)
-
   default = {
     Name        = "lab-rds-app"
     Environment = "lab"

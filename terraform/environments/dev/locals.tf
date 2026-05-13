@@ -4,6 +4,7 @@ locals {
   owner           = "kxjohnson"
   region          = "us-east-1"
   rds_secret_name = "lab/rds/mysql"
+  db_username     = "admin"
 
   name_prefix = "${local.project}-${local.environment}"
 
