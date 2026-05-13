@@ -54,6 +54,13 @@ variable "db_name" {
   type    = string
   default = "notes"
 }
+variable "db_password" {
+  description = "Sensitive RDS database password provided by HCP Terraform."
+  type        = string
+  sensitive   = true
+  ephemeral   = true
+}
+
 
 variable "secret_path" {
   type    = string
