@@ -5,7 +5,8 @@
 # - Attach the IAM instance profile so EC2 can read Secrets Manager and write logs
 # - Install CloudWatch Agent through user_data
 # - Ship app/bootstrap logs into CloudWatch Logs
-# - Create a CloudWatch alarm for app failure signals
+# - Run a Python app that proves:
+#   Browser -> EC2 -> IAM instance profile -> Secrets Manager -> RDS MySQL
 # -----------------------------------------------------------------------------
 
 data "aws_ami" "amazon_linux_2023" {
@@ -43,6 +44,8 @@ resource "aws_instance" "ec2_app" {
   iam_instance_profile        = aws_iam_instance_profile.ec2_app_instance_profile.name
   associate_public_ip_address = true
 
+  # Important:
+  # Changing user_data will replace the EC2 instance so the new bootstrap script runs.
   user_data_replace_on_change = true
 
   user_data = <<-EOF
@@ -54,6 +57,8 @@ resource "aws_instance" "ec2_app" {
 
     mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
     mkdir -p /opt/lab1-app
+    touch /var/log/lab1-app.log
+    chmod 644 /var/log/lab1-app.log
 
     cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWCONFIG'
     {
@@ -68,9 +73,9 @@ resource "aws_instance" "ec2_app" {
                 "timezone": "UTC"
               },
               {
-                "file_path": "/var/log/messages",
+                "file_path": "/var/log/lab1-app.log",
                 "log_group_name": "${local.cloudwatch_log_group}",
-                "log_stream_name": "{instance_id}/messages",
+                "log_stream_name": "{instance_id}/lab1-app",
                 "timezone": "UTC"
               }
             ]
@@ -86,41 +91,136 @@ resource "aws_instance" "ec2_app" {
       -s \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
+    python3 -m venv /opt/lab1-app/venv
+    /opt/lab1-app/venv/bin/python -m pip install --upgrade pip
+    /opt/lab1-app/venv/bin/pip install boto3 PyMySQL
+
     cat > /opt/lab1-app/app.py <<'PYAPP'
     from http.server import BaseHTTPRequestHandler, HTTPServer
     import datetime
     import json
-    import subprocess
+    import logging
+    import traceback
+
+    import boto3
+    import pymysql
 
     SECRET_NAME = "${local.rds_secret_name}"
     REGION = "${local.region}"
     DB_HOST = "${aws_db_instance.mysql.address}"
     DB_NAME = "${var.db_name}"
+    DB_PORT = 3306
+    TABLE_NAME = "notes"
+
+    logging.basicConfig(
+        filename="/var/log/lab1-app.log",
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s"
+    )
+
+    def read_secret():
+        client = boto3.client("secretsmanager", region_name=REGION)
+        response = client.get_secret_value(SecretId=SECRET_NAME)
+        secret_string = response["SecretString"]
+        secret = json.loads(secret_string)
+
+        username = secret.get("username")
+        password = secret.get("password")
+
+        if not username or not password:
+            raise ValueError("Secret is missing required username/password fields.")
+
+        return username, password
+
+    def validate_database(username, password):
+        connection = pymysql.connect(
+            host=DB_HOST,
+            user=username,
+            password=password,
+            database=DB_NAME,
+            port=DB_PORT,
+            connect_timeout=5,
+            autocommit=True,
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS notes (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        content VARCHAR(255) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("SELECT DATABASE() AS database_name")
+                database_result = cursor.fetchone()
+
+                cursor.execute("SHOW TABLES LIKE %s", (TABLE_NAME,))
+                table_result = cursor.fetchone()
+
+        if not database_result or database_result["database_name"] != DB_NAME:
+            raise RuntimeError("Database validation failed.")
+
+        if not table_result:
+            raise RuntimeError("Notes table validation failed.")
+
+        return True
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            now = datetime.datetime.utcnow().isoformat()
-            status = {
-                "status": "ok",
+            now = datetime.datetime.utcnow().isoformat() + "Z"
+
+            result = {
                 "lab": "LAB1",
                 "service": "ec2-to-rds-notes-app",
                 "time_utc": now,
                 "secret_name": SECRET_NAME,
-                "region": REGION,
-                "db_host": DB_HOST,
-                "db_name": DB_NAME
+                "secret_read": "pending",
+                "database_connection": "pending",
+                "database": DB_NAME,
+                "table": TABLE_NAME
             }
 
-            self.send_response(200)
+            status_code = 200
+
+            try:
+                username, password = read_secret()
+                result["secret_read"] = "ok"
+
+                validate_database(username, password)
+                result["database_connection"] = "ok"
+
+                logging.info(
+                    "LAB1_APP_OK secret_read=ok database_connection=ok database=%s table=%s",
+                    DB_NAME,
+                    TABLE_NAME
+                )
+
+            except Exception as error:
+                status_code = 500
+                result["status"] = "error"
+                result["error_type"] = type(error).__name__
+                result["error_message"] = str(error)
+
+                logging.error(
+                    "LAB1_APP_ERROR secret_or_db_validation_failed error_type=%s error_message=%s traceback=%s",
+                    type(error).__name__,
+                    str(error),
+                    traceback.format_exc()
+                )
+
+            self.send_response(status_code)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(status, indent=2).encode())
+            self.wfile.write(json.dumps(result, indent=2).encode())
 
         def log_message(self, format, *args):
-            print("LAB1_APP_LOG " + format % args)
+            logging.info("HTTP_REQUEST " + format % args)
 
     if __name__ == "__main__":
-        print("LAB1 app starting on port 80")
+        logging.info("LAB1 app starting on port 80")
         HTTPServer(("0.0.0.0", 80), Handler).serve_forever()
     PYAPP
 
@@ -132,11 +232,11 @@ resource "aws_instance" "ec2_app" {
 
     [Service]
     Type=simple
-    ExecStart=/usr/bin/python3 /opt/lab1-app/app.py
+    ExecStart=/opt/lab1-app/venv/bin/python /opt/lab1-app/app.py
     Restart=always
     RestartSec=5
-    StandardOutput=journal
-    StandardError=journal
+    StandardOutput=append:/var/log/lab1-app.log
+    StandardError=append:/var/log/lab1-app.log
 
     [Install]
     WantedBy=multi-user.target
@@ -144,7 +244,7 @@ resource "aws_instance" "ec2_app" {
 
     systemctl daemon-reload
     systemctl enable lab1-app
-    systemctl start lab1-app
+    systemctl restart lab1-app
   EOF
 
   depends_on = [
@@ -166,7 +266,8 @@ resource "aws_cloudwatch_log_metric_filter" "ec2_app_failures" {
   name           = "${local.name_prefix}-app-failure-filter"
   log_group_name = aws_cloudwatch_log_group.ec2_app.name
 
-  pattern = "?ERROR ?Error ?error ?FAILED ?Failed ?failed ?Exception ?exception"
+  # Captures explicit application failures for LAB1 incident-response proof.
+  pattern = "?LAB1_APP_ERROR ?ERROR ?Error ?error ?FAILED ?Failed ?failed ?Exception ?exception"
 
   metric_transformation {
     name      = "${local.name_prefix}-app-failures"
@@ -176,8 +277,9 @@ resource "aws_cloudwatch_log_metric_filter" "ec2_app_failures" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ec2_app_failures" {
-  alarm_name          = local.cloudwatch_alarm_name
-  alarm_description   = "Triggers when LAB1 EC2 app failure messages exceed the threshold."
+  alarm_name        = local.cloudwatch_alarm_name
+  alarm_description = "Triggers when LAB1 EC2 app failure messages exceed the threshold."
+
   namespace           = "LAB1/EC2App"
   metric_name         = aws_cloudwatch_log_metric_filter.ec2_app_failures.metric_transformation[0].name
   statistic           = "Sum"
