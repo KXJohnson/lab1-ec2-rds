@@ -48,6 +48,15 @@ resource "aws_instance" "ec2_app" {
   # Changing user_data will replace the EC2 instance so the new bootstrap script runs.
   user_data_replace_on_change = true
 
+  # Prevent LAB1 EC2 replacement from upstream Amazon Linux AMI drift.
+  # AMI updates should be handled intentionally, not during IAM-only changes.
+  lifecycle {
+    ignore_changes = [
+      ami
+    ]
+  }
+
+
   user_data = <<-EOF
     #!/bin/bash
     set -euxo pipefail
