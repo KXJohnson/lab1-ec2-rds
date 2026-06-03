@@ -65,6 +65,19 @@ resource "aws_iam_policy" "ec2_app_policy" {
         Resource = local.rds_secret_arn_pattern
       },
       {
+        Sid    = "ReadRdsParametersFromSsm"
+        Effect = "Allow"
+
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+        ]
+
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/lab/db/*"
+
+      },
+      {
         Sid    = "WriteCloudWatchLogs"
         Effect = "Allow"
 
@@ -94,6 +107,11 @@ resource "aws_iam_role_policy_attachment" "ec2_app_policy_attachment" {
   policy_arn = aws_iam_policy.ec2_app_policy.arn
 }
 
+
+resource "aws_iam_role_policy_attachment" "ec2_ssm_managed_instance_core" {
+  role       = aws_iam_role.ec2_app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
 resource "aws_iam_instance_profile" "ec2_app_instance_profile" {
   name = local.ec2_instance_profile_name
   role = aws_iam_role.ec2_app_role.name
