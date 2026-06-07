@@ -14,4 +14,5 @@ db_username = "admin"
 # Use HCP Terraform sensitive variables, Vault, or AWS Secrets Manager.
 db_password = "REPLACE_WITH_SECURE_VALUE"
 
-
+# Do NOT put your real email in terraform.tfvars.example.
+alarm_notification_email = "your-email@example.com"

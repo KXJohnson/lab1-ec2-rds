@@ -30,4 +30,5 @@ locals {
   instance_profile_name = "${local.name_prefix}-ec2-instance-profile"
   cloudwatch_log_group  = "/aws/ec2/${local.name_prefix}-app"
   cloudwatch_alarm_name = "${local.name_prefix}-app-failure-alarm"
+  sns_topic_name        = "${local.name_prefix}-app-alerts"
 }

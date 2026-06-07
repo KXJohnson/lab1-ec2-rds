@@ -72,6 +72,12 @@ variable "environment" {
 }
 
 
+variable "alarm_notification_email" {
+  description = "Email address that receives CloudWatch alarm notifications through SNS"
+  type        = string
+  sensitive   = true
+}
+
 variable "secret_path" {
   type    = string
   default = "lab/rds/mysql"

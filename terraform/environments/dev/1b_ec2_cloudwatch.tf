@@ -284,7 +284,20 @@ resource "aws_cloudwatch_log_metric_filter" "ec2_app_failures" {
     value     = "1"
   }
 }
+resource "aws_sns_topic" "app_alerts" {
+  name = local.sns_topic_name
 
+  tags = local.common_tags
+
+}
+
+
+resource "aws_sns_topic_subscription" "app_alerts_email" {
+  topic_arn = aws_sns_topic.app_alerts.arn
+  protocol  = "email"
+  endpoint  = var.alarm_notification_email
+
+}
 resource "aws_cloudwatch_metric_alarm" "ec2_app_failures" {
   alarm_name        = local.cloudwatch_alarm_name
   alarm_description = "Triggers when LAB1 EC2 app failure messages exceed the threshold."
@@ -297,7 +310,9 @@ resource "aws_cloudwatch_metric_alarm" "ec2_app_failures" {
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-
+  alarm_actions = [
+    aws_sns_topic.app_alerts.arn
+  ]
   tags = merge(
     local.common_tags,
     {
