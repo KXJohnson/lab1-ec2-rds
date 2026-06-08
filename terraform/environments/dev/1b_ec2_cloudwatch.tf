@@ -39,10 +39,10 @@ resource "aws_cloudwatch_log_group" "ec2_app" {
 resource "aws_instance" "ec2_app" {
   ami                         = data.aws_ami.amazon_linux_2023.id
   instance_type               = "t3.micro"
-  subnet_id                   = aws_subnet.public.id
+  subnet_id                   = aws_subnet.private_a.id
   vpc_security_group_ids      = [aws_security_group.app.id]
   iam_instance_profile        = aws_iam_instance_profile.ec2_app_instance_profile.name
-  associate_public_ip_address = true
+  associate_public_ip_address = false
 
   # Important:
   # Changing user_data will replace the EC2 instance so the new bootstrap script runs.

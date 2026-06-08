@@ -154,15 +154,6 @@ resource "aws_security_group" "app" {
   )
 }
 
-resource "aws_vpc_security_group_ingress_rule" "app_ssh" {
-  security_group_id = aws_security_group.app.id
-  description       = "Allow SSH from approved CIDR"
-  cidr_ipv4         = var.allowed_ssh_cidr
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-}
-
 resource "aws_vpc_security_group_ingress_rule" "app_http" {
   security_group_id = aws_security_group.app.id
   description       = "Allow application traffic"
