@@ -62,7 +62,7 @@ resource "aws_instance" "ec2_app" {
     set -euxo pipefail
 
     dnf update -y
-    dnf install -y amazon-cloudwatch-agent python3 python3-pip mariadb105
+    dnf install -y amazon-cloudwatch-agent python3 python3-boto3 mariadb105
 
     mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
     mkdir -p /opt/lab1-app
@@ -100,10 +100,6 @@ resource "aws_instance" "ec2_app" {
       -s \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
-    python3 -m venv /opt/lab1-app/venv
-    /opt/lab1-app/venv/bin/python -m pip install --upgrade pip
-    /opt/lab1-app/venv/bin/pip install boto3 PyMySQL
-
     cat > /opt/lab1-app/app.py <<'PYAPP'
     from http.server import BaseHTTPRequestHandler, HTTPServer
     import datetime
@@ -112,7 +108,9 @@ resource "aws_instance" "ec2_app" {
     import traceback
 
     import boto3
-    import pymysql
+    import os
+    import shutil
+    import subprocess
 
     SECRET_NAME = "${local.rds_secret_name}"
     REGION = "${local.region}"
@@ -142,37 +140,52 @@ resource "aws_instance" "ec2_app" {
         return username, password
 
     def validate_database(username, password):
-        connection = pymysql.connect(
-            host=DB_HOST,
-            user=username,
-            password=password,
-            database=DB_NAME,
-            port=DB_PORT,
-            connect_timeout=5,
-            autocommit=True,
-            cursorclass=pymysql.cursors.DictCursor
+        client = shutil.which("mariadb") or shutil.which("mysql")
+
+        if not client:
+            raise RuntimeError("No MariaDB/MySQL client found on the instance.")
+
+        sql = f"""
+            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                content VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            SELECT DATABASE();
+            SHOW TABLES LIKE '{TABLE_NAME}';
+        """
+
+        env = os.environ.copy()
+        env["MYSQL_PWD"] = password
+
+        result = subprocess.run(
+            [
+                client,
+                "-h", DB_HOST,
+                "-P", str(DB_PORT),
+                "-u", username,
+                DB_NAME,
+                "-N",
+                "-e", sql,
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
 
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS notes (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        content VARCHAR(255) NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Database validation command failed: {result.stderr.strip()}"
+            )
 
-                cursor.execute("SELECT DATABASE() AS database_name")
-                database_result = cursor.fetchone()
+        output_lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-                cursor.execute("SHOW TABLES LIKE %s", (TABLE_NAME,))
-                table_result = cursor.fetchone()
-
-        if not database_result or database_result["database_name"] != DB_NAME:
+        if DB_NAME not in output_lines:
             raise RuntimeError("Database validation failed.")
 
-        if not table_result:
+        if TABLE_NAME not in output_lines:
             raise RuntimeError("Notes table validation failed.")
 
         return True
@@ -241,7 +254,7 @@ resource "aws_instance" "ec2_app" {
 
     [Service]
     Type=simple
-    ExecStart=/opt/lab1-app/venv/bin/python /opt/lab1-app/app.py
+    ExecStart=/usr/bin/python3 /opt/lab1-app/app.py
     Restart=always
     RestartSec=5
     StandardOutput=append:/var/log/lab1-app.log
