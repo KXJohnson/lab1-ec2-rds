@@ -155,12 +155,12 @@ resource "aws_security_group" "app" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "app_http" {
-  security_group_id = aws_security_group.app.id
-  description       = "Allow application traffic"
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = var.app_port
-  ip_protocol       = "tcp"
-  to_port           = var.app_port
+  security_group_id            = aws_security_group.app.id
+  description                  = "Allow application traffic from the Bonus B ALB only"
+  referenced_security_group_id = aws_security_group.alb.id
+  from_port                    = var.app_port
+  ip_protocol                  = "tcp"
+  to_port                      = var.app_port
 }
 
 resource "aws_vpc_security_group_egress_rule" "app_all_outbound" {
