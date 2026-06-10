@@ -91,3 +91,9 @@ variable "common_tags" {
     Project     = "Lab1"
   }
 }
+
+variable "public_subnet_b_cidr" {
+  description = "CIDR block for the LAB1 second public subnet for the Bonus B ALB."
+  type        = string
+  default     = "10.0.4.0/24"
+}

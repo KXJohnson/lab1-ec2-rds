@@ -204,3 +204,29 @@ resource "aws_vpc_security_group_egress_rule" "db_all_outbound" {
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
+# -----------------------------------------------------------------------------
+# Bonus B - Second Public Subnet for Internet-Facing ALB
+# Purpose:
+# - Application Load Balancers require subnets in at least two Availability Zones.
+# - Bonus A keeps EC2 private; this subnet is only for the public ALB layer.
+# -----------------------------------------------------------------------------
+
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.public_subnet_b_cidr
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-public-subnet-b"
+      Tier = "public"
+    }
+  )
+}
+
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
+}
