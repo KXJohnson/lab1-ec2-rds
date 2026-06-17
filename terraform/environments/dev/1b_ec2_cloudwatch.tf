@@ -333,3 +333,31 @@ resource "aws_cloudwatch_metric_alarm" "ec2_app_failures" {
     }
   )
 }
+resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
+  alarm_name          = "${local.name_prefix}-alb-5xx-errors"
+  alarm_description   = "Triggers when the LAB1 ALB records HTTP 5xx errors."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "HTTPCode_ELB_5XX_Count"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = aws_lb.app.arn_suffix
+  }
+
+  alarm_actions = [
+    aws_sns_topic.app_alerts.arn
+  ]
+
+  ok_actions = [
+    aws_sns_topic.app_alerts.arn
+  ]
+
+  tags = local.common_tags
+}
+
+
