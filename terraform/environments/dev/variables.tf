@@ -97,3 +97,19 @@ variable "public_subnet_b_cidr" {
   type        = string
   default     = "10.0.4.0/24"
 }
+
+# -----------------------------------------------------------------------------
+# LAB1 Bonus C - Route53 + ACM + HTTPS
+# -----------------------------------------------------------------------------
+
+variable "domain_name" {
+  description = "Root domain name managed in Route53 for LAB1 Bonus C."
+  type        = string
+  default     = "kulturalintercessor.org"
+}
+
+variable "app_subdomain" {
+  description = "Subdomain for the LAB1 app ALB."
+  type        = string
+  default     = "app"
+}
