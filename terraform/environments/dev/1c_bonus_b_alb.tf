@@ -56,6 +56,10 @@ resource "aws_lb" "app" {
     enabled = var.enable_alb_access_logs
   }
 
+  depends_on = [
+    aws_s3_bucket_policy.alb_logs
+  ]
+
   tags = merge(
     local.common_tags,
     {
