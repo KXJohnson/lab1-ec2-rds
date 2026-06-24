@@ -50,6 +50,12 @@ resource "aws_lb" "app" {
     aws_subnet.public_b.id
   ]
 
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.bucket
+    prefix  = var.alb_access_logs_prefix
+    enabled = var.enable_alb_access_logs
+  }
+
   tags = merge(
     local.common_tags,
     {

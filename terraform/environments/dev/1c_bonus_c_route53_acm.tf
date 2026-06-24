@@ -12,8 +12,9 @@ data "aws_route53_zone" "bonus_c" {
 }
 
 resource "aws_acm_certificate" "app" {
-  domain_name       = local.bonus_c_app_fqdn
-  validation_method = "DNS"
+  domain_name               = local.bonus_c_app_fqdn
+  subject_alternative_names = [var.domain_name]
+  validation_method         = "DNS"
 
   tags = merge(
     local.common_tags,

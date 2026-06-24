@@ -54,3 +54,22 @@ output "ec2_instance_profile_name" {
   description = "IAM instance profile attached to the LAB1 EC2 app server."
   value       = aws_iam_instance_profile.ec2_app_instance_profile.name
 }
+
+# -----------------------------------------------------------------------------
+# LAB1 Bonus D Outputs
+# -----------------------------------------------------------------------------
+
+output "apex_url_https" {
+  description = "HTTPS URL for the LAB1 apex domain."
+  value       = "https://${var.domain_name}"
+}
+
+output "alb_logs_bucket_name" {
+  description = "S3 bucket name for LAB1 ALB access logs."
+  value       = aws_s3_bucket.alb_logs.bucket
+}
+
+output "alb_access_logs_prefix" {
+  description = "S3 prefix for LAB1 ALB access logs."
+  value       = var.alb_access_logs_prefix
+}
