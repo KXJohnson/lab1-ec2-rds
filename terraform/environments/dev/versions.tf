@@ -15,6 +15,11 @@ terraform {
       version = ">= 6.0"
     }
 
+    archive = {
+      source  = "hashicorp/archive"
+      version = ">= 2.7.0"
+    }
+
     #vault = {
     #  source  = "hashicorp/vault"
     #  version = ">= 5.0"
