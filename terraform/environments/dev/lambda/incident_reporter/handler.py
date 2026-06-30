@@ -137,7 +137,8 @@ fields @timestamp, httpRequest.uri as uri
 fields @timestamp, terminatingRuleId, action
 | stats count() as requests by terminatingRuleId, action
 | sort requests desc
-| limit 10
+| limit 1
+
 """,
     }
 
@@ -151,20 +152,20 @@ def run_query_pack(log_group_name, queries):
     results = {}
 
     for name, query_string in queries.items():
-         if not query_string or not query_string.strip():
+        if not query_string or not query_string.strip():
             results[name] = {
                 "status": "SKIPPED",
-                "reason": "Empty query string"
+                "reason": "Empty query string",
             }
             continue
 
-       print(f"Running Logs Insights query: {name} against {log_group_name}")
+        print(f"Running Logs Insights query: {name} against {log_group_name}")
 
         response = logs.start_query(
             logGroupName=log_group_name,
             startTime=start_time,
             endTime=end_time,
-            queryString=query_string,
+            queryString=query_string.strip(),
         )
 
         query_id = response["queryId"]
