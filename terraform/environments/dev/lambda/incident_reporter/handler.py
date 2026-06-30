@@ -89,26 +89,8 @@ def extract_alarm_message(event):
 
 def collect_app_log_evidence():
     queries = {
-        "error_rate_1m": """
-fields @timestamp, @message
-| filter @message like "ERROR" or @message like "Exception" or @message like "failed" or @message like "failure" or @message like "DB" or @message like "database"
-| stats count() as errors by bin(1m)
-| sort bin(1m) desc
-| limit 20
-""",
-        "top_error_signatures": """
-fields @timestamp, @message
-| filter @message like "ERROR" or @message like "Exception" or @message like "failed" or @message like "failure" or @message like "DB" or @message like "database"
-| stats count() as count by @message
-| sort count desc
-| limit 5
-""",
-        "recent_error_lines": """
-fields @timestamp, @message
-| filter @message like "ERROR" or @message like "Exception" or @message like "failed" or @message like "failure" or @message like "DB" or @message like "database"
-| sort @timestamp desc
-| limit 10
-""",
+        "recent_app_logs": "fields @timestamp, @message | sort @timestamp desc | limit 20",
+        "recent_error_lines": "fields @timestamp, @message | filter @message like /ERROR/ | sort @timestamp desc | limit 10",
     }
 
     return run_query_pack(APP_LOG_GROUP, queries)
@@ -116,30 +98,8 @@ fields @timestamp, @message
 
 def collect_waf_log_evidence():
     queries = {
-        "allow_vs_block": """
-fields @timestamp, action
-| stats count() as requests by action
-| sort requests desc
-""",
-        "top_client_ips": """
-fields @timestamp, httpRequest.clientIp as clientIp
-| stats count() as requests by clientIp
-| sort requests desc
-| limit 10
-""",
-        "top_uris": """
-fields @timestamp, httpRequest.uri as uri
-| stats count() as requests by uri
-| sort requests desc
-| limit 10
-""",
-        "terminating_rules": """
-fields @timestamp, terminatingRuleId, action
-| stats count() as requests by terminatingRuleId, action
-| sort requests desc
-| limit 1
-
-""",
+        "recent_waf_logs": "fields @timestamp, @message | sort @timestamp desc | limit 20",
+        "waf_actions": "fields action | stats count() as requests by action | sort requests desc",
     }
 
     return run_query_pack(WAF_LOG_GROUP, queries)
@@ -160,6 +120,8 @@ def run_query_pack(log_group_name, queries):
             continue
 
         print(f"Running Logs Insights query: {name} against {log_group_name}")
+        print(f"Query string length: {len(query_string.strip())}")
+        print(f"Query string repr: {repr(query_string.strip())}")
 
         response = logs.start_query(
             logGroupName=log_group_name,
