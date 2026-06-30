@@ -147,7 +147,7 @@ resource "aws_iam_role_policy" "incident_reporter_lambda" {
         Action = [
           "bedrock:InvokeModel"
         ]
-        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
+        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/us.anthropic.claude-haiku-4-5-20251001-v1:0"
       }
     ]
   })
@@ -171,7 +171,7 @@ resource "aws_lambda_function" "incident_reporter" {
       REPORT_BUCKET    = aws_s3_bucket.incident_reports.bucket
       REPORT_TOPIC_ARN = aws_sns_topic.incident_report_ready.arn
       SECRET_ID        = aws_secretsmanager_secret.rds_credentials.name
-      BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+      BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
     }
   }
 
