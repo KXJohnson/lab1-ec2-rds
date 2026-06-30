@@ -151,7 +151,14 @@ def run_query_pack(log_group_name, queries):
     results = {}
 
     for name, query_string in queries.items():
-        print(f"Running Logs Insights query: {name} against {log_group_name}")
+         if not query_string or not query_string.strip():
+            results[name] = {
+                "status": "SKIPPED",
+                "reason": "Empty query string"
+            }
+            continue
+
+       print(f"Running Logs Insights query: {name} against {log_group_name}")
 
         response = logs.start_query(
             logGroupName=log_group_name,
