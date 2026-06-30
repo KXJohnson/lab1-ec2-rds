@@ -141,17 +141,21 @@ resource "aws_iam_role_policy" "incident_reporter_lambda" {
         ]
         Resource = aws_sns_topic.incident_report_ready.arn
       },
-   {
-      Effect = "Allow"
-      Action = [
-        "bedrock:InvokeModel"
-      ]
-      Resource = [
-        "arn:aws:bedrock:${var.aws_region}::foundation-model/*",
-        "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/*",
-        "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/*"
-      ]
-    }     )
+
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel"
+        ]
+        Resource = [
+          "arn:aws:bedrock:${var.aws_region}::foundation-model/*",
+          "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/*",
+          "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/*"
+        ]
+      }
+    ]
+  })
+
 }
 
 resource "aws_lambda_function" "incident_reporter" {
