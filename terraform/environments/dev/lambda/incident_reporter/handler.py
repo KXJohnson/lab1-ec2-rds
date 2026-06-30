@@ -91,21 +91,21 @@ def collect_app_log_evidence():
     queries = {
         "error_rate_1m": """
 fields @timestamp, @message
-| filter @message like /ERROR|Exception|failed|failure|DB|database/i
+| filter @message like "ERROR" or @message like "Exception" or @message like "failed" or @message like "failure" or @message like "DB" or @message like "database"
 | stats count() as errors by bin(1m)
 | sort bin(1m) desc
 | limit 20
 """,
         "top_error_signatures": """
 fields @timestamp, @message
-| filter @message like /ERROR|Exception|failed|failure|DB|database/i
+| filter @message like "ERROR" or @message like "Exception" or @message like "failed" or @message like "failure" or @message like "DB" or @message like "database"
 | stats count() as count by @message
 | sort count desc
 | limit 5
 """,
         "recent_error_lines": """
 fields @timestamp, @message
-| filter @message like /ERROR|Exception|failed|failure|DB|database/i
+| filter @message like "ERROR" or @message like "Exception" or @message like "failed" or @message like "failure" or @message like "DB" or @message like "database"
 | sort @timestamp desc
 | limit 10
 """,
