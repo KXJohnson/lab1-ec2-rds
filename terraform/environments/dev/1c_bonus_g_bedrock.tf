@@ -1,11 +1,11 @@
 # -----------------------------------------------------------------------------
-# LAB1 Bonus G - Bedrock-powered Incident Reporter
+# LAB1 Bonus H - Bedrock Auto-Generated Incident Reports
 # Purpose:
 # - Subscribe a Lambda function to the existing LAB1 alarm SNS topic
 # - Collect CloudWatch Logs Insights evidence from app and WAF log groups
-# - Read recovery context from SSM Parameter Store and Secrets Manager
+# - Read recovery context from SSM Parameter Store and Secrets Manager metadata
 # - Invoke Amazon Bedrock to generate a Markdown incident report
-# - Store the report in S3
+# - Store evidence JSON and report Markdown in S3
 # - Publish a report-ready notification to a separate SNS topic
 # -----------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ resource "aws_iam_role_policy" "incident_reporter_lambda" {
         Action = [
           "ssm:GetParameter",
           "ssm:GetParameters",
-          "secretsmanager:GetSecretValue"
+          "secretsmanager:DescribeSecret"
         ]
         Resource = [
           aws_secretsmanager_secret.rds_credentials.arn,
@@ -131,7 +131,7 @@ resource "aws_iam_role_policy" "incident_reporter_lambda" {
         Action = [
           "s3:PutObject"
         ]
-        Resource = "${aws_s3_bucket.incident_reports.arn}/incident-reports/*"
+        Resource = "${aws_s3_bucket.incident_reports.arn}/reports/*"
       },
       {
         Sid    = "PublishReportReady"
@@ -177,6 +177,7 @@ resource "aws_lambda_function" "incident_reporter" {
       REPORT_BUCKET    = aws_s3_bucket.incident_reports.bucket
       REPORT_TOPIC_ARN = aws_sns_topic.incident_report_ready.arn
       SECRET_ID        = aws_secretsmanager_secret.rds_credentials.name
+      SSM_PARAM_PATH   = "/lab/db/"
       BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
     }
   }
