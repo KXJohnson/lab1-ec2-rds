@@ -278,25 +278,25 @@ Evidence:
 
 
 def invoke_bedrock(prompt):
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 2000,
-        "temperature": 0.2,
-        "messages": [
+    response = bedrock.converse(
+        modelId=BEDROCK_MODEL_ID,
+        messages=[
             {
                 "role": "user",
-                "content": prompt,
+                "content": [
+                    {
+                        "text": prompt,
+                    }
+                ],
             }
         ],
-    }
-
-    response = bedrock.invoke_model(
-        modelId=BEDROCK_MODEL_ID,
-        body=json.dumps(body),
+        inferenceConfig={
+            "maxTokens": 2000,
+            "temperature": 0.2,
+        },
     )
 
-    response_body = json.loads(response["body"].read())
-    return response_body["content"][0]["text"]
+    return response["output"]["message"]["content"][0]["text"]
 
 
 def write_incident_objects_to_s3(incident_id, evidence, report_markdown):

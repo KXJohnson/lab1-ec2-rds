@@ -145,7 +145,8 @@ resource "aws_iam_role_policy" "incident_reporter_lambda" {
       {
         Effect = "Allow"
         Action = [
-          "bedrock:InvokeModel"
+          "bedrock:InvokeModel",
+          "bedrock:Converse"
         ]
 
         Resource = [
@@ -178,7 +179,7 @@ resource "aws_lambda_function" "incident_reporter" {
       REPORT_TOPIC_ARN = aws_sns_topic.incident_report_ready.arn
       SECRET_ID        = aws_secretsmanager_secret.rds_credentials.name
       SSM_PARAM_PATH   = "/lab/db/"
-      BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+      BEDROCK_MODEL_ID = "us.amazon.nova-lite-v1:0"
     }
   }
 
