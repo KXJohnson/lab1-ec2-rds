@@ -108,8 +108,7 @@ def collect_app_log_evidence():
         "app_error_rate_over_time": (
             "fields @timestamp, @message "
             "| filter @message like /ERROR|Error|error|FAIL|Fail|fail|Exception|exception/ "
-            "| stats count() as error_count by bin(1m) "
-            "| sort bin(1m) asc"
+            "| stats count(*) as error_count by bin(1m)"
         ),
         "app_latest_50_db_error_lines": (
             "fields @timestamp, @message "
