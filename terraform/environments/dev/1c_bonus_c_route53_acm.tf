@@ -4,6 +4,7 @@
 
 locals {
   bonus_c_app_fqdn = "${var.app_subdomain}.${var.domain_name}"
+  lab2_origin_fqdn = "origin.${var.domain_name}"
 }
 
 data "aws_route53_zone" "bonus_c" {
@@ -12,9 +13,12 @@ data "aws_route53_zone" "bonus_c" {
 }
 
 resource "aws_acm_certificate" "app" {
-  domain_name               = local.bonus_c_app_fqdn
-  subject_alternative_names = [var.domain_name]
-  validation_method         = "DNS"
+  domain_name = local.bonus_c_app_fqdn
+  subject_alternative_names = [
+    var.domain_name,
+    local.lab2_origin_fqdn
+  ]
+  validation_method = "DNS"
 
   tags = merge(
     local.common_tags,
@@ -67,14 +71,39 @@ resource "aws_lb_listener" "https" {
   certificate_arn   = aws_acm_certificate_validation.app.certificate_arn
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Forbidden"
+      status_code  = "403"
+    }
   }
 }
 
 resource "aws_route53_record" "app_alias" {
   zone_id = data.aws_route53_zone.bonus_c.zone_id
   name    = local.bonus_c_app_fqdn
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.app.domain_name
+    zone_id                = aws_cloudfront_distribution.app.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# -----------------------------------------------------------------------------
+# LAB2 - Dedicated CloudFront origin hostname
+#
+# CloudFront uses this hostname when connecting to the ALB over HTTPS.
+# Keeping the origin hostname separate from the public application aliases
+# prevents a DNS loop after the apex and app records are moved to CloudFront.
+# -----------------------------------------------------------------------------
+
+resource "aws_route53_record" "origin_alias" {
+  zone_id = data.aws_route53_zone.bonus_c.zone_id
+  name    = local.lab2_origin_fqdn
   type    = "A"
 
   alias {
