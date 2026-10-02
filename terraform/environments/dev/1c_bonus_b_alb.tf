@@ -19,16 +19,6 @@ resource "aws_security_group" "alb" {
   )
 }
 
-resource "aws_security_group_rule" "alb_http_inbound" {
-  security_group_id = aws_security_group.alb.id
-  description       = "Allow public HTTP traffic to the ALB"
-  type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-}
-
 resource "aws_security_group_rule" "alb_all_outbound" {
   security_group_id = aws_security_group.alb.id
   description       = "Allow ALB outbound traffic to targets"

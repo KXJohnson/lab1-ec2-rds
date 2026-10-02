@@ -53,16 +53,6 @@ resource "aws_acm_certificate_validation" "app" {
   validation_record_fqdns = [for record in aws_route53_record.app_cert_validation : record.fqdn]
 }
 
-resource "aws_security_group_rule" "alb_https_inbound" {
-  security_group_id = aws_security_group.alb.id
-  description       = "Allow public HTTPS traffic to the ALB"
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-}
-
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.app.arn
   port              = 443
